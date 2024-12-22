@@ -56,31 +56,32 @@ def main():
         <style>
         .main {
             max-width: 900px;
-            padding: 2rem;
+            padding: 1rem;
             margin: 0 auto;
         }
-        .tool-list {
-            list-style-type: none;
-            padding-left: 1.5rem;
+        /* Streamlit page link styling */
+        .stPageLink {
+            width: 100% !important;
+            white-space: normal !important;
+            height: auto !important;
+            min-height: 46px;
+            padding: 0.5rem 1rem !important;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+            text-align: left !important;
         }
-        .tool-item {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: baseline;
-            font-size: 1.2rem;
+        .stPageLink > div {
+            white-space: normal !important;
+            text-align: left !important;
         }
-        .tool-item:before {
-            content: "•";
-            display: inline-block;
-            width: 1em;
-            margin-left: -1em;
-        }
-        .tool-link {
-            margin-right: 0.5rem;
-            font-weight: 500;
-        }
-        .tool-description {
-            opacity: 0.8;
+        @media (max-width: 768px) {
+            .main {
+                padding: 0.5rem;
+            }
+            .stPageLink {
+                font-size: 0.9rem;
+                padding: 0.75rem !important;
+            }
         }
         </style>
     """, unsafe_allow_html=True)
@@ -95,8 +96,8 @@ def main():
         for filename, config in tools:
             label = f"{config['name']}"
             if config['description']:
-                label += f" - *{config['description']}*"
-            st.page_link(f"pages/{filename}", label=label)
+                label += f"\n\n*{config['description']}*"
+            st.page_link(f"pages/{filename}", label=label, use_container_width=True)
 
 if __name__ == "__main__":
     main()
