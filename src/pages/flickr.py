@@ -11,17 +11,18 @@ from datetime import datetime
 
 SUFFIX_ORDER = ["_k", "_h", "_b", "_z", "_m"]
 
+
 def try_download_flickr_image(base_url, headers, timeout=10):
     """
     Attempt to download an image from 'base_url' by trying different Flickr suffixes.
     Returns a tuple (success, message_or_final_url).
     """
-    match = re.search(r'(_[a-z])\.jpg$', base_url)
+    match = re.search(r"(_[a-z])\.jpg$", base_url)
     if not match:
         return _attempt_download(base_url, headers, timeout=timeout)
 
-    prefix = base_url[:match.start()]
-    
+    prefix = base_url[: match.start()]
+
     for suffix in SUFFIX_ORDER:
         candidate_url = prefix + suffix + ".jpg"
         success, msg = _attempt_download(candidate_url, headers, timeout=timeout)
@@ -86,21 +87,21 @@ if st.button("Download Images"):
     if not flickr_url.strip():
         st.error("Please enter a valid Flickr URL.")
         st.stop()
-    
+
     # Create memory file for zip
     zip_buffer = io.BytesIO()
-    
+
     # Create a timestamp for the zip filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+
     success_count = 0
-    
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.flickr.com/"
+            "Referer": "https://www.flickr.com/",
         }
 
         try:
@@ -139,17 +140,17 @@ if st.button("Download Images"):
             try:
                 r = requests.get(link, headers=headers, timeout=10)
                 r.raise_for_status()
-                
+
                 # Create a ZipInfo object for more control
                 zip_info = zipfile.ZipInfo(filename)
                 zip_info.date_time = time.localtime()[:6]
                 zip_info.compress_type = zipfile.ZIP_DEFLATED
-                
+
                 # Write the file to the zip
                 zip_file.writestr(zip_info, r.content)
                 success_count += 1
                 status_text.success(f"Added {filename} to zip file.")
-                
+
                 # Update progress bar
                 progress_bar.progress((index + 1) / len(flickr_links))
                 time.sleep(0.5)
@@ -159,18 +160,18 @@ if st.button("Download Images"):
                 time.sleep(0.5)
 
         progress_bar.progress(1.0)
-        
+
     if success_count > 0:
         # Prepare zip file for download
         zip_buffer.seek(0)
-        
+
         # Create download button with timestamp in filename
         st.download_button(
             label=f"Download {success_count} images as ZIP",
             data=zip_buffer,
             file_name=f"flickr_images_{timestamp}.zip",
             mime="application/zip",
-            help="Click to download all successfully retrieved images as a ZIP file"
+            help="Click to download all successfully retrieved images as a ZIP file",
         )
     else:
         st.error("No images were successfully downloaded.")
