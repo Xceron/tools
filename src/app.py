@@ -21,12 +21,7 @@ TOOL_CONFIG: Dict[str, ToolConfig] = {
         "name": "Flickr Downloader",
         "description": "Download images from Flickr pages in bulk",
         "category": "Image tools",
-    },
-    "dblp.py": {
-        "name": "BibTeX DBLP Resolver",
-        "description": "Resolve BibTeX entries with DBLP",
-        "category": "BibTeX tools",
-    },
+    }
 }
 
 
