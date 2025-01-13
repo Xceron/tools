@@ -560,6 +560,18 @@ wheels = [
 ]
 
 [[package]]
+name = "streamlit-shortcuts"
+version = "0.1.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7c/6a/8b39496d9771a88d9660d8bd7b8331064cfab78749a03e6b287a9e7f6e56/streamlit_shortcuts-0.1.9.tar.gz", hash = "sha256:0d19a430f214143371e57c1c8fc021927317db01d204cbda7c380124065466e0", size = 5400 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/57/48/a76df0487c8ef878800e9abc266e26e66eb280d84d5e0976ef89b66aa19e/streamlit_shortcuts-0.1.9-py3-none-any.whl", hash = "sha256:f0b37c912614a1fd0cd069476946a3354a779a64a332e80bc16f2e769e63bfbb", size = 5261 },
+]
+
+[[package]]
 name = "tenacity"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -586,6 +598,7 @@ dependencies = [
     { name = "bibtexparser" },
     { name = "requests" },
     { name = "streamlit" },
+    { name = "streamlit-shortcuts" },
 ]
 
 [package.metadata]
@@ -594,6 +607,7 @@ requires-dist = [
     { name = "bibtexparser", specifier = ">=1.4.3" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "streamlit", specifier = ">=1.41.1" },
+    { name = "streamlit-shortcuts", specifier = ">=0.1.9" },
 ]
 
 [[package]]

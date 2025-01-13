@@ -9,4 +9,5 @@ dependencies = [
     "bibtexparser>=1.4.3",
     "requests>=2.32.3",
     "streamlit>=1.41.1",
+    "streamlit-shortcuts>=0.1.9",
 ]
