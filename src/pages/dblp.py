@@ -7,7 +7,6 @@ import json
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
-from streamlit_shortcuts import button, add_keyboard_shortcuts
 import urllib.request
 from bibtexparser.bibdatabase import BibDatabase
 
@@ -175,15 +174,6 @@ def add_todo_note(entry: Dict) -> Dict:
 st.title("BibTeX DBLP Resolver")
 st.write("Upload your BibTeX file and resolve entries with DBLP.")
 
-st.markdown("""
-**Keyboard Shortcuts:**
-- `Enter` or `Y`: Accept match
-- `Esc` or `N`: Decline match
-- `1`-`5`: Select match number (when multiple matches shown)
-
-**Note:** Exact matches are automatically accepted
-""")
-
 uploaded_file = st.file_uploader("Choose a BibTeX file", type=['bib'])
 
 if uploaded_file:
@@ -245,11 +235,11 @@ if uploaded_file:
                     cols = st.columns(min(len(dblp_results) + 1, 6))
                     for i in range(min(len(dblp_results), 5)):
                         with cols[i]:
-                            if button(f"{i + 1}", str(i + 1), lambda i=i: handle_accept(entry, dblp_results[i]), hint=True):
-                                pass
+                            if st.button(f"{i + 1}"):
+                                handle_accept(entry, dblp_results[i])
                     with cols[-1]:
-                        if button("❌", "Escape", lambda: handle_decline(entry), hint=True):
-                            pass
+                        if st.button("❌"):
+                            handle_decline(entry)
             else:
                 st.subheader("No Matches Found")
                 st.text(format_entry_for_display(entry))
