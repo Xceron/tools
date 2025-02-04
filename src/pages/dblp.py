@@ -98,7 +98,7 @@ def format_entry_for_display(entry: Dict, is_dblp: bool = False) -> str:
 
 📅 Year: {entry.get("year", "N/A")}
 📑 Type: {entry.get("ENTRYTYPE", "N/A")}
-🏷️ Citation Key: {entry.get("ID", "N/A")}"""
+🏷️ Citation Key: {entry.get("id", "N/A")}"""
 
 
 def get_bib_from_dblp_url(dblp_url: str) -> Optional[str]:
@@ -133,7 +133,7 @@ def merge_entries(bibtex_entry: Dict, dblp_entry: Dict) -> Dict:
 
                 # Use the fetched entry but keep the original ID
                 merged = fetched_bib_entry
-                merged["ID"] = bibtex_entry.get("ID")
+                merged["id"] = bibtex_entry.get("id")
                 return merged
 
     # Fallback to merging fields if direct .bib fetching fails
