@@ -98,7 +98,7 @@ def format_entry_for_display(entry: Dict, is_dblp: bool = False) -> str:
 
 📅 Year: {entry.get("year", "N/A")}
 📑 Type: {entry.get("ENTRYTYPE", "N/A")}
-🏷️ Citation Key: {entry.get("id", "N/A")}"""
+🏷️ Citation Key: {entry.get("ID", "N/A")}"""
 
 
 def get_bib_from_dblp_url(dblp_url: str) -> Optional[str]:
@@ -133,7 +133,7 @@ def merge_entries(bibtex_entry: Dict, dblp_entry: Dict) -> Dict:
 
                 # Use the fetched entry but keep the original ID
                 merged = fetched_bib_entry
-                merged["id"] = bibtex_entry.get("id")
+                merged["ID"] = bibtex_entry.get("ID")
                 return merged
 
     # Fallback to merging fields if direct .bib fetching fails
@@ -204,42 +204,48 @@ st.write("Upload your BibTeX file and resolve entries with DBLP.")
 uploaded_file = st.file_uploader("Choose a BibTeX file", type=["bib"])
 
 if uploaded_file:
-    parser = bibtexparser.bparser.BibTexParser(common_strings=True)
-    bib_database = clean_bibtex(uploaded_file.getvalue().decode())
-    if "current_entry" not in st.session_state:
-        st.session_state.current_entry = 0
+    # Initialize session state
+    if "processed_entries" not in st.session_state:
+        parser = BibTexParser(common_strings=True)
+        bib_database = clean_bibtex(uploaded_file.getvalue().decode())
+        
         st.session_state.processed_entries = []
+        st.session_state.conflict_entries = []
+        st.session_state.current_entry = 0
+        st.session_state.current_conflict = 0
         st.session_state.processing_done = False
+        st.session_state.resolution_done = False
+        st.session_state.bib_database = bib_database
 
-    progress_text = st.empty()
-    progress_bar = st.progress(0.0)
-
+    # Processing phase
     if not st.session_state.processing_done:
-        if st.session_state.current_entry < len(bib_database.entries):
+        progress_text = st.empty()
+        progress_bar = st.progress(0.0)
+        bib_database = st.session_state.bib_database
+
+        while st.session_state.current_entry < len(bib_database.entries):
             entry = bib_database.entries[st.session_state.current_entry]
+            
+            # Update progress
+            progress = (st.session_state.current_entry + 1) / len(bib_database.entries)
+            progress_text.markdown(f"**Processing entries:** {st.session_state.current_entry + 1}/{len(bib_database.entries)}")
+            progress_bar.progress(progress)
 
-            progress_fraction = (st.session_state.current_entry + 1) / len(
-                bib_database.entries
-            )
-            progress_text.write(
-                f"Processing entry {st.session_state.current_entry + 1} of {len(bib_database.entries)}"
-            )
-            progress_bar.progress(progress_fraction)
+            # Search DBLP
+            with st.spinner(f"Searching DBLP for '{entry.get('title', '')}'..."):
+                dblp_results = search_dblp(entry.get("title", ""))
 
-            with st.spinner(f"Searching DBLP for '{entry['title']}'..."):
-                dblp_results = search_dblp(entry["title"])
-
+            # Process results
             if dblp_results:
+                # Find exact matches
+                original_clean = clean_title(entry.get("title", ""))
                 exact_matches = []
                 other_matches = []
-                original_clean = clean_title(entry["title"])
 
                 for result in dblp_results:
-                    result_clean = clean_title(result["title"])
+                    result_clean = clean_title(result.get("title", ""))
                     overlap = set(original_clean.split()) & set(result_clean.split())
-                    total_words = set(original_clean.split()) | set(
-                        result_clean.split()
-                    )
+                    total_words = set(original_clean.split()) | set(result_clean.split())
                     similarity = len(overlap) / len(total_words) if total_words else 0
 
                     if similarity > 0.8:
@@ -247,53 +253,76 @@ if uploaded_file:
                     else:
                         other_matches.append(result)
 
-                exact_matches.sort(
-                    key=lambda x: "CoRR" in x.get("venue", "")
-                    or "arXiv" in x.get("venue", "")
-                )
+                # Sort exact matches to prefer non-CoRR
+                exact_matches.sort(key=lambda x: "CoRR" in x.get("venue", "") or "arXiv" in x.get("venue", ""))
 
                 if exact_matches:
-                    handle_accept(entry, exact_matches[0])
+                    merged = merge_entries(entry, exact_matches[0])
+                    st.session_state.processed_entries.append(merged)
                 else:
-                    st.subheader("Similar Matches Found")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**Original Entry**")
-                        st.text(format_entry_for_display(entry))
-                    with col2:
-                        for i, result in enumerate(dblp_results):
-                            st.markdown(f"**Match {i + 1}** (Press {i + 1})")
-                            st.text(format_entry_for_display(result, True))
-                            if i < len(dblp_results) - 1:
-                                st.markdown("---")
-
-                    cols = st.columns(min(len(dblp_results) + 1, 6))
-                    for i in range(min(len(dblp_results), 5)):
-                        with cols[i]:
-                            if st.button(f"{i + 1}"):
-                                handle_accept(entry, dblp_results[i])
-                    with cols[-1]:
-                        if st.button("❌"):
-                            handle_decline(entry)
+                    st.session_state.conflict_entries.append({
+                        "original": entry,
+                        "matches": dblp_results
+                    })
             else:
-                st.subheader("No Matches Found")
-                st.text(format_entry_for_display(entry))
-                st.warning(
-                    "This entry will be marked with a TODO note for manual search."
-                )
-                handle_decline(add_todo_note(entry))
+                # No matches found
+                st.session_state.processed_entries.append(add_todo_note(entry))
 
-            if st.session_state.current_entry < len(bib_database.entries):
-                st.rerun()
-            else:
-                st.session_state.processing_done = True
+            st.session_state.current_entry += 1
+
+        st.session_state.processing_done = True
+        st.rerun()
+
+    # Conflict resolution phase
+    elif not st.session_state.resolution_done:
+        progress_text = st.empty()
+        progress_bar = st.progress(0.0)
+        total_conflicts = len(st.session_state.get('conflict_entries', []))
+
+        if total_conflicts > 0:
+            # Ensure current_conflict is within valid range
+            st.session_state.current_conflict = max(0, min(st.session_state.current_conflict, total_conflicts - 1))
+            
+            conflict = st.session_state.conflict_entries[st.session_state.current_conflict]
+            original = conflict["original"]
+            matches = conflict["matches"]
+
+            # Display conflict
+            progress = (st.session_state.current_conflict + 1) / total_conflicts
+            progress_text.markdown(f"**Resolving conflicts:** {st.session_state.current_conflict + 1}/{total_conflicts}")
+            progress_bar.progress(progress)
+
+            st.subheader("Original Entry")
+            st.text(format_entry_for_display(original))
+
+            st.subheader("DBLP Matches")
+            for idx, match in enumerate(matches[:5]):
+                col1, col2 = st.columns([0.1, 0.9])
+                with col1:
+                    if st.button(f"{idx+1}", key=f"match_{idx}"):
+                        merged = merge_entries(original, match)
+                        st.session_state.processed_entries.append(merged)
+                        st.session_state.current_conflict += 1
+                        st.rerun()
+                with col2:
+                    st.text(format_entry_for_display(match, is_dblp=True))
+
+            if st.button("Skip", key="skip"):
+                # Mark this conflict as skipped/resolved by adding the original entry
+                st.session_state.processed_entries.append(conflict["original"])
+                # Remove the conflict from the list so it won’t be processed again
+                st.session_state.conflict_entries.pop(st.session_state.current_conflict)
                 st.rerun()
 
-    if st.session_state.processing_done:
-        progress_bar.progress(1.0)
-        progress_text.write("Processing complete!")
+        else:
+            st.success("All conflicts resolved!")
+            st.session_state.current_conflict = 0
+            st.session_state.resolution_done = True
+            st.rerun()
+
+    # Final output
+    else:
         st.success("All entries processed!")
-
         db = BibDatabase()
         db.entries = st.session_state.processed_entries
         bibtex_str = bibtexparser.dumps(db)
@@ -306,7 +335,5 @@ if uploaded_file:
         )
 
         if st.button("Process another file"):
-            del st.session_state.current_entry
-            del st.session_state.processed_entries
-            st.session_state.processing_done = False
-            st.rerun()
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
